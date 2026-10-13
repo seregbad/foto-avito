@@ -87,6 +87,7 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
 .ai ul{margin:4px 0 0;padding-left:20px}
 .ai li{margin:2px 0}
 .copybox{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;white-space:pre-wrap;word-break:break-word}
+.tin{font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);width:100%;box-sizing:border-box}
 .copyrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .score{font-family:var(--display);font-size:22px}
 .note{font-size:13px;color:var(--muted)}
@@ -166,6 +167,43 @@ html,body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom
     <div class="out" id="aiOut"></div>
   </section>
 
+  <section class="panel ai" id="aiManual" aria-label="Подсказки от нейросети">
+    <h2>Подсказки и текст объявления</h2>
+    <p class="note" style="margin:0">Нейросеть ГигаЧат посмотрит до 4 готовых фото: оценит их, скажет, что переснять и каких кадров не хватает, и напишет заголовок с описанием. Это единственная функция, которая отправляет фото наружу; после ответа они удаляются.</p>
+    <label class="row" for="m_item"><span class="lbl">Что продаём</span>
+      <input id="m_item" class="tin" type="text" placeholder="детская куртка Reima">
+    </label>
+    <label class="row" for="m_params"><span class="lbl">Размер, параметры</span>
+      <input id="m_params" class="tin" type="text" placeholder="110 см, на рост 104–110, зима">
+    </label>
+    <label class="row" for="m_state"><span class="lbl">Состояние, дефекты</span>
+      <input id="m_state" class="tin" type="text" placeholder="носили один сезон, потёртость на манжете">
+    </label>
+    <label class="row" for="m_extra"><span class="lbl">Ещё важное (необязательно)</span>
+      <input id="m_extra" class="tin" type="text" placeholder="самовывоз м. Купчино, отдам с варежками">
+    </label>
+    <div id="autoBox" class="ai">
+      <label class="row" for="m_pin" id="pinRow"><span class="lbl">Код доступа (вводится один раз)</span>
+        <input id="m_pin" class="tin" type="password" inputmode="numeric" autocomplete="off" placeholder="код от мужа">
+      </label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn primary" id="m_ask" disabled>Получить подсказки</button><span class="note" id="m_askNote">Сначала добавь фото</span></div>
+      <div class="out" id="m_out"></div>
+    </div>
+    <details id="manualBox">
+      <summary>Без кнопки: скопировать запрос для любой нейросети</summary>
+      <div class="ai" style="margin-top:10px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="m_copy">Скопировать запрос</button></div>
+        <div class="copybox" id="m_text"></div>
+        <ol class="check">
+          <li>Сохрани обработанные фото кнопкой «Сохранить» выше.</li>
+          <li>Нажми «Скопировать запрос».</li>
+          <li>Открой ГигаЧат (приложение или бот в Telegram) или Алису в приложении Яндекс.</li>
+          <li>Прикрепи 2–4 фото из галереи, первым главное, вставь запрос и отправь.</li>
+        </ol>
+      </div>
+    </details>
+  </section>
+
   <section class="panel">
     <details>
       <summary>Как снимать, чтобы продавалось: 8 кадров</summary>
@@ -190,6 +228,7 @@ html,body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom
   <button class="btn" id="modalClose">Закрыть</button>
 </div>
 
+<script src="config.js"></script>
 <script src="ort.min.js"></script>
 <script src="jszip.min.js"></script>
 <script>
@@ -498,6 +537,85 @@ $('askAi').onclick = async () => {
   } finally { $('stopAi').hidden = true; refreshAiBtn(); }
 };
 $('stopAi').onclick = () => aiCtl && aiCtl.abort();
+
+/* ---------- manual AI prompt (works with any chat bot that sees photos) ---------- */
+(function(){
+  const ids=['m_item','m_params','m_state','m_extra'];
+  const load=()=>{ try{ const d=JSON.parse(localStorage.getItem('m_fields')||'{}'); ids.forEach(i=>{ if(d[i]) $(i).value=d[i]; }); }catch(e){} };
+  const save=()=>{ try{ const d={}; ids.forEach(i=>d[i]=$(i).value); localStorage.setItem('m_fields',JSON.stringify(d)); }catch(e){} };
+  function build(){
+    const v=i=>$(i).value.trim();
+    const facts=[v('m_item')&&'Товар: '+v('m_item'), v('m_params')&&'Размер и параметры: '+v('m_params'), v('m_state')&&'Состояние и дефекты: '+v('m_state'), v('m_extra')&&'Дополнительно: '+v('m_extra')].filter(Boolean).join('\n');
+    return `Я продаю вещь на Авито. Прикладываю фото, первое пойдёт главным в объявление.
+${facts ? '\nЧто я знаю о товаре:\n'+facts+'\n' : ''}
+Сделай по шагам:
+1. Оценка фото от 1 до 5: насколько они готовы к продаже, одной фразой почему.
+2. Что поправить на этих фото: ракурс, свет, кадр, фон. До 4 конкретных пунктов.
+3. Каких кадров не хватает для этого типа товара. До 4 пунктов.
+4. Заголовок объявления до 50 знаков: что это, бренд или модель если видно, главный параметр.
+5. Описание на 4–7 предложений, простым живым языком: состояние, размер и параметры, комплект. Видимые дефекты упомяни честно.
+
+Не выдумывай факты, которых нет на фото и в моём списке. Где нужна информация, которой нет, ставь [уточнить].`;
+  }
+  function render(){ $('m_text').textContent=build(); }
+  load(); render();
+  ids.forEach(i=>$(i).addEventListener('input',()=>{ render(); save(); }));
+  $('m_copy').onclick=()=>{
+    const t=build(), b=$('m_copy');
+    (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{ b.textContent='Скопировано'; setTimeout(()=>b.textContent='Скопировать запрос',1800); })
+      .catch(()=>{ const r=document.createRange(); r.selectNodeContents($('m_text')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent='Выделено, скопируй'; });
+  };
+})();
+
+/* ---------- AI tips via own cloud function (GigaChat) ---------- */
+(function(){
+  const URL_ = (window.FOTO_AVITO && window.FOTO_AVITO.aiUrl || '').trim();
+  if (!URL_) { $('autoBox').hidden = true; $('manualBox').open = true; return; }
+  let pin = ''; try { pin = localStorage.getItem('m_pin') || ''; } catch(e){}
+  if (pin) $('pinRow').hidden = true;
+  const btn = $('m_ask'), note = $('m_askNote'), out = $('m_out');
+  function refresh(){ const n = items.filter(it => it.blob).length; btn.disabled = !n; note.textContent = n ? (n > 4 ? 'Возьму первые 4 фото' : '') : 'Сначала добавь фото'; }
+  setInterval(refresh, 800); refresh();
+  async function toB64(blob){
+    const { im, u } = await loadImage(blob); const sc = Math.min(1, 1024/Math.max(im.naturalWidth, im.naturalHeight));
+    const c = canvas(im.naturalWidth*sc, im.naturalHeight*sc); c.getContext('2d').drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(u);
+    return c.toDataURL('image/jpeg', 0.82).split(',')[1];
+  }
+  const li = a => (Array.isArray(a) ? a : []).map(x => `<li>${esc(x)}</li>`).join('');
+  btn.onclick = async () => {
+    const p = pin || $('m_pin').value.trim();
+    if (!p) { $('pinRow').hidden = false; $('m_pin').focus(); note.textContent = 'Введи код доступа'; return; }
+    btn.disabled = true; out.innerHTML = '<p class="note">ГигаЧат смотрит фото… обычно 15–60 секунд.</p>';
+    try {
+      const images = await Promise.all(items.filter(it => it.blob).slice(0,4).map(it => toB64(it.blob)));
+      const facts = { item:$('m_item').value, params:$('m_params').value, state:$('m_state').value, extra:$('m_extra').value };
+      const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 90000);
+      const res = await fetch(URL_, { method:'POST', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify({ pin:p, facts, images }), signal: ctl.signal });
+      clearTimeout(to);
+      let data = {}; try { data = await res.json(); } catch(e){}
+      if (res.status === 403) { try { localStorage.removeItem('m_pin'); } catch(e){} pin = ''; $('pinRow').hidden = false; throw { msg:'Неверный код доступа. Введи код ещё раз.' }; }
+      if (!res.ok) throw { msg: ({ no_tokens:'Закончились бесплатные токены ГигаЧат. Скажи мужу.', auth:'Ключ ГигаЧат не подошёл. Скажи мужу.', busy:'ГигаЧат занят. Попробуй через минуту.', not_configured:'Сервер не настроен. Скажи мужу.' })[data.error] || 'ГигаЧат не ответил. Попробуй ещё раз через минуту.' };
+      if (!pin) { pin = p; try { localStorage.setItem('m_pin', p); } catch(e){} $('pinRow').hidden = true; }
+      const r = data.result;
+      if (!r) { out.innerHTML = `<div class="copybox">${esc(data.raw || 'Пустой ответ')}</div>`; return; }
+      out.innerHTML = `
+        <div class="copyrow"><h3>${esc(r.item)}</h3><span class="score" title="Готовность фото">${esc(r.score)}/5</span></div>
+        ${r.good?.length ? `<div><h3>Уже хорошо</h3><ul>${li(r.good)}</ul></div>` : ''}
+        ${r.fix?.length ? `<div><h3>Что поправить</h3><ul>${li(r.fix)}</ul></div>` : ''}
+        ${r.missing?.length ? `<div><h3>Каких кадров не хватает</h3><ul>${li(r.missing)}</ul></div>` : ''}
+        <div><div class="copyrow"><h3>Заголовок</h3><button class="btn cp" data-k="g_title">Копировать</button></div><div class="copybox" id="g_title">${esc(r.title)}</div></div>
+        <div><div class="copyrow"><h3>Описание</h3><button class="btn cp" data-k="g_desc">Копировать</button></div><div class="copybox" id="g_desc">${esc(r.description)}</div></div>
+        <p class="note">Проверь текст перед публикацией: нейросеть видит только фото и твои слова, места [уточнить] заполни сама.</p>`;
+      out.querySelectorAll('.cp').forEach(b => b.onclick = () => {
+        const el = $(b.dataset.k), t = el.textContent;
+        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { b.textContent = 'Скопировано'; setTimeout(() => b.textContent = 'Копировать', 1500); })
+          .catch(() => { const rg = document.createRange(); rg.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(rg); b.textContent = 'Выделено, скопируй'; });
+      });
+    } catch(e){
+      out.innerHTML = `<p class="note">${esc(e && e.msg || (e && e.name === 'AbortError' ? 'Слишком долго нет ответа. Попробуй ещё раз.' : 'Нет связи с сервером. Проверь интернет и попробуй ещё раз.'))}</p>`;
+    } finally { refresh(); }
+  };
+})();
 
 updateBar();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
