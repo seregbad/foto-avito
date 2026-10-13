@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Фото Авито">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0B6E69">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Фото Авито</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column like a phone app — upload, settings strip, photo grid, AI helper, shooting checklist */
+:root{
+  --bg:#EEF1F3; --surface:#FFFFFF; --sunk:#E3E8EB; --fg:#17202A; --muted:#5C6B78; --line:#D3DADF;
+  --accent:#0B6E69; --accent-fg:#FFFFFF; --accent-soft:#D6ECEA; --warn:#A55A00; --bad:#B3261E; --ok:#1F7A3A;
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11171C; --surface:#1A2229; --sunk:#232D35; --fg:#E7EDF1; --muted:#97A6B2; --line:#2E3A44;
+  --accent:#4FC2B9; --accent-fg:#06221F; --accent-soft:#163633; --warn:#E3A24A; --bad:#F2867E; --ok:#6BCB86; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11171C; --surface:#1A2229; --sunk:#232D35; --fg:#E7EDF1; --muted:#97A6B2; --line:#2E3A44;
+  --accent:#4FC2B9; --accent-fg:#06221F; --accent-soft:#163633; --warn:#E3A24A; --bad:#F2867E; --ok:#6BCB86; color-scheme:dark}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:flex;flex-direction:column;gap:22px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,5vw,30px);line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font-family:var(--display);font-weight:500;font-size:17px;margin:0;text-wrap:balance}
+.lede{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.lede b{color:var(--fg);font-weight:600}
+button{font:inherit;cursor:pointer}
+button:focus-visible,label:focus-within,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;padding:9px 14px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.drop{position:relative;border:2px dashed var(--line);border-radius:var(--r);background:var(--surface);padding:22px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop .big{font-weight:600;font-size:16px}
+.drop small{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-direction:column;gap:6px}
+.lbl{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:6px 12px;font-size:14px;display:inline-flex;align-items:center;gap:7px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.sw{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.18);display:inline-block}
+.sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px 18px}
+.sliders label{display:flex;flex-direction:column;gap:2px;font-size:14px}
+.sliders span{display:flex;justify-content:space-between;color:var(--muted);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.toggles{display:flex;flex-wrap:wrap;gap:8px 18px}
+.toggles label{display:flex;align-items:center;gap:8px;font-size:14px}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+.status{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;min-height:20px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.ok{background:var(--ok)} .dot.busy{background:var(--warn);animation:pulse 1s infinite} .dot.bad{background:var(--bad)}
+@keyframes pulse{50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.dot.busy{animation:none}}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
+.shot{position:relative;background:var(--sunk);aspect-ratio:4/3;max-width:100%;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;-webkit-touch-callout:none}
+.shot .orig{opacity:0}
+.shot.peek .orig{opacity:1}
+.chip{position:absolute;left:8px;top:8px;font-size:12px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+.chip.busy{color:var(--warn)} .chip.bad{color:var(--bad)}
+.peekhint{position:absolute;right:8px;bottom:8px;font-size:11px;padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff}
+.cardfoot{display:flex;gap:6px;padding:8px;flex-wrap:wrap;align-items:center}
+.cardfoot .btn{padding:6px 10px;font-size:13px}
+.cardfoot .sp{flex:1}
+.mini{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.mini input{width:16px;height:16px}
+.empty{color:var(--muted);text-align:center;padding:10px 0 0}
+.ai{display:flex;flex-direction:column;gap:12px}
+.ai .out{display:flex;flex-direction:column;gap:12px}
+.ai h3{margin:0;font-size:14px;font-weight:600}
+.ai ul{margin:4px 0 0;padding-left:20px}
+.ai li{margin:2px 0}
+.copybox{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;white-space:pre-wrap;word-break:break-word}
+.copyrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.score{font-family:var(--display);font-size:22px}
+.note{font-size:13px;color:var(--muted)}
+.check{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.check b{font-weight:600}
+details summary{cursor:pointer;font-weight:600}
+.modal{position:fixed;inset:0;background:rgba(10,14,18,.86);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;z-index:10}
+.modal img{max-height:78%;max-width:100%;border-radius:8px;-webkit-touch-callout:default}
+.modal p{color:#fff;margin:0;text-align:center}
+html,body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <h1>Фотостудия для Авито</h1>
+    <p class="lede">Загрузи снимки с телефона: приложение выровняет свет и цвет, уберёт фон, поставит предмет по центру и обрежет кадр под объявление. <b>Фото обрабатываются прямо на устройстве</b> и никуда не отправляются, пока ты сама не нажмёшь «Подсказки от ИИ».</p>
+  </header>
+
+  <label class="drop" id="drop">
+    <input type="file" id="file" accept="image/*" multiple>
+    <span class="big">＋ Добавить фото</span>
+    <small>Можно сразу несколько. На телефоне откроется галерея или камера.</small>
+  </label>
+
+  <section class="panel" aria-label="Настройки обработки">
+    <div class="row">
+      <span class="lbl">Фон</span>
+      <div class="seg" id="bgSeg">
+        <button data-v="white" aria-pressed="true"><i class="sw" style="background:#FFFFFF"></i>Белый</button>
+        <button data-v="grey" aria-pressed="false"><i class="sw" style="background:#ECEFF2"></i>Светло-серый</button>
+        <button data-v="warm" aria-pressed="false"><i class="sw" style="background:#F2ECE3"></i>Тёплый</button>
+        <button data-v="blur" aria-pressed="false"><i class="sw" style="background:linear-gradient(135deg,#9aa7a2,#d8d1c4)"></i>Размытый свой</button>
+        <button data-v="keep" aria-pressed="false">Оставить как есть</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="lbl">Кадр</span>
+      <div class="seg" id="fmtSeg">
+        <button data-v="4:3" aria-pressed="true">4:3 горизонтальный</button>
+        <button data-v="3:4" aria-pressed="false">3:4 вертикальный</button>
+        <button data-v="1:1" aria-pressed="false">1:1 квадрат</button>
+      </div>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="auto" checked> Автосвет и цвет</label>
+      <label><input type="checkbox" id="sharp" checked> Резкость</label>
+      <label><input type="checkbox" id="shadow" checked> Мягкая тень под предметом</label>
+    </div>
+    <div class="sliders">
+      <label for="bright">Яркость <span><em>темнее</em><b id="brightV">0</b><em>светлее</em></span><input type="range" id="bright" min="-30" max="30" value="0"></label>
+      <label for="warmth">Оттенок <span><em>холоднее</em><b id="warmthV">0</b><em>теплее</em></span><input type="range" id="warmth" min="-20" max="20" value="0"></label>
+      <label for="fill">Размер предмета в кадре <span><em>мельче</em><b id="fillV">82%</b><em>крупнее</em></span><input type="range" id="fill" min="60" max="95" value="82"></label>
+    </div>
+    <div class="status" id="aiStatus"><i class="dot"></i><span>ИИ-вырезка фона загрузится при первом фото (около 16 МБ, один раз, потом работает без интернета)</span></div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-label="Фото">
+    <div class="bar">
+      <h2 id="countH">Фото</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="clearAll" hidden>Удалить все фото</button>
+        <button class="btn primary" id="saveAll" hidden>Сохранить все</button>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <p class="empty" id="empty">Пока пусто. Добавь фото, и здесь появится результат. Зажми карточку, чтобы увидеть оригинал.</p>
+  </section>
+
+  <section class="panel ai" id="aiPanel" aria-label="Подсказки от ИИ">
+    <h2>Подсказки от ИИ и текст объявления</h2>
+    <p class="note" style="margin:0">Claude посмотрит до 4 готовых фото: оценит, хватает ли ракурсов, что переснять, и предложит заголовок с описанием. Это единственная функция, которая отправляет фото наружу, и она тратит лимиты твоего аккаунта Claude.</p>
+    <label class="row" for="hint"><span class="lbl">Что продаём (необязательно)</span>
+      <input id="hint" type="text" placeholder="например: детская куртка, 110 см, б/у, носили один сезон" style="font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);width:100%;box-sizing:border-box">
+    </label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="askAi" disabled>Получить подсказки</button><button class="btn" id="stopAi" hidden>Остановить</button></div>
+    <div class="out" id="aiOut"></div>
+  </section>
+
+  <section class="panel">
+    <details>
+      <summary>Как снимать, чтобы продавалось: 8 кадров</summary>
+      <ol class="check" style="margin-top:10px">
+        <li><b>Главное фото:</b> предмет целиком, чуть сверху (под 30–45°), занимает большую часть кадра. Его видят в ленте, на нём решают, кликать или нет.</li>
+        <li><b>Спереди и сзади:</b> два прямых кадра без перспективы.</li>
+        <li><b>Сбоку или в три четверти:</b> показывает объём и толщину.</li>
+        <li><b>Детали:</b> фурнитура, ткань, швы, кнопки, экран включённым.</li>
+        <li><b>Бирка, размер, модель:</b> снимает половину вопросов в чате.</li>
+        <li><b>Дефекты честно, крупно:</b> покупатель всё равно увидит, а честность снижает торг и возвраты.</li>
+        <li><b>Масштаб:</b> в руке, на человеке или рядом с понятным предметом.</li>
+        <li><b>Комплект:</b> всё, что идёт в придачу, одним кадром.</li>
+      </ol>
+      <p class="note">Свет: у окна днём, без вспышки, телефон не против окна. Фон перед съёмкой расчистить, даже если потом уберём его здесь: так вырезка получается чище.</p>
+    </details>
+  </section>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <img id="modalImg" alt="Готовое фото">
+  <p>Зажми фото пальцем и выбери «Сохранить в Фото»</p>
+  <button class="btn" id="modalClose">Закрыть</button>
+</div>
+
+<script src="ort.min.js"></script>
+<script src="jszip.min.js"></script>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const S = { bg:'white', fmt:'4:3', auto:true, sharp:true, shadow:true, bright:0, warmth:0, fill:82 };
+const BG = { white:'#FFFFFF', grey:'#ECEFF2', warm:'#F2ECE3' };
+const FMT = { '4:3':[1600,1200], '3:4':[1200,1600], '1:1':[1500,1500] };
+const MAXSRC = 2000, MS = 320;
+let items = [], seq = 0, downloads = null, sample = null;
+
+/* ---------- capabilities ---------- */
+if (window.claude && claude.use) {
+  claude.use('downloads').then(d => { downloads = d; }).catch(()=>{});
+  claude.use('sample').then(s => { sample = s; refreshAiBtn(); if (!s) $('aiPanel').hidden = true; }).catch(()=>{ $('aiPanel').hidden = true; });
+} else { $('aiPanel').hidden = true; }
+
+/* ---------- settings UI ---------- */
+function bindSeg(id, key){
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    [...$(id).children].forEach(x => x.setAttribute('aria-pressed', x === b));
+    S[key] = b.dataset.v; schedule();
+  });
+}
+bindSeg('bgSeg','bg'); bindSeg('fmtSeg','fmt');
+['auto','sharp','shadow'].forEach(k => $(k).addEventListener('change', e => { S[k] = e.target.checked; schedule(); }));
+[['bright',''],['warmth',''],['fill','%']].forEach(([k,u]) => $(k).addEventListener('input', e => {
+  S[k] = +e.target.value; $(k+'V').textContent = (k!=='fill' && S[k]>0?'+':'') + S[k] + u; schedule(true);
+}));
+let tmr; function schedule(slow){ clearTimeout(tmr); tmr = setTimeout(() => items.forEach(it => queue(it)), slow?250:30); }
+
+/* ---------- AI model (background removal, runs locally) ---------- */
+let sessionP = null, aiState = 'idle';
+function setAi(state, text){ aiState = state; const st = $('aiStatus'); st.querySelector('.dot').className = 'dot ' + ({ready:'ok',loading:'busy',fail:'bad'}[state]||''); st.querySelector('span').textContent = text; }
+function getSession(){
+  if (sessionP) return sessionP;
+  sessionP = (async () => {
+    if (!window.ort) throw new Error('no ort');
+    setAi('loading','Загружаю ИИ для вырезки фона…');
+    ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false; ort.env.wasm.wasmPaths = './';
+    const buf = new Uint8Array(await fetch('u2netp.onnx').then(r => { if(!r.ok) throw new Error('model '+r.status); return r.arrayBuffer(); }));
+    let s;
+    try { s = await ort.InferenceSession.create(buf, { executionProviders:['wasm'] }); }
+    catch(e1){ console.warn('wasm failed', e1); s = await ort.InferenceSession.create(buf, { executionProviders:['webgl'] }); }
+    setAi('ready','ИИ-вырезка фона готова и работает без интернета');
+    return s;
+  })().catch(e => { console.error(e); setAi('fail','ИИ-вырезка не запустилась на этом устройстве. Свет, цвет и кадрирование работают, фон остаётся свой.'); return null; });
+  return sessionP;
+}
+let runChain = Promise.resolve();
+async function computeMask(it){
+  const s = await getSession(); if (!s) return null;
+  const job = runChain.then(async () => {
+    const c = canvas(MS, MS), x = c.getContext('2d', {willReadFrequently:true});
+    x.drawImage(it.src, 0, 0, MS, MS);
+    const d = x.getImageData(0,0,MS,MS).data;
+    let mx = 1; for (let i=0;i<d.length;i+=4){ mx = Math.max(mx, d[i], d[i+1], d[i+2]); }
+    const mean=[0.485,0.456,0.406], sd=[0.229,0.224,0.225], N=MS*MS, f = new Float32Array(3*N);
+    for (let p=0;p<N;p++) for (let ch=0;ch<3;ch++) f[ch*N+p] = (d[p*4+ch]/mx - mean[ch]) / sd[ch];
+    const out = await s.run({ [s.inputNames[0]]: new ort.Tensor('float32', f, [1,3,MS,MS]) });
+    const m = out[s.outputNames[0]].data;
+    let lo=1, hi=0; for (let i=0;i<N;i++){ if(m[i]<lo)lo=m[i]; if(m[i]>hi)hi=m[i]; }
+    const mc = canvas(MS, MS), mx2 = mc.getContext('2d'), md = mx2.createImageData(MS, MS);
+    let x0=MS,y0=MS,x1=-1,y1=-1,area=0;
+    for (let i=0;i<N;i++){
+      const v = (m[i]-lo)/Math.max(1e-6,hi-lo);
+      const a = Math.max(0, Math.min(1, (v-0.18)/0.5));
+      md.data[i*4]=md.data[i*4+1]=md.data[i*4+2]=255; md.data[i*4+3]=Math.round(a*255);
+      if (v>0.5){ area++; const px=i%MS, py=(i/MS)|0; if(px<x0)x0=px; if(px>x1)x1=px; if(py<y0)y0=py; if(py>y1)y1=py; }
+    }
+    mx2.putImageData(md,0,0);
+    if (area < N*0.02 || x1 < 0) return { canvas: mc, bbox: null };
+    const sx = it.w/MS, sy = it.h/MS;
+    return { canvas: mc, bbox: { x:x0*sx, y:y0*sy, w:(x1-x0+1)*sx, h:(y1-y0+1)*sy } };
+  });
+  runChain = job.catch(()=>{});
+  return job;
+}
+
+/* ---------- image helpers ---------- */
+function canvas(w,h){ const c = document.createElement('canvas'); c.width = Math.max(1,Math.round(w)); c.height = Math.max(1,Math.round(h)); return c; }
+function loadImage(file){
+  return new Promise((res, rej) => { const u = URL.createObjectURL(file), im = new Image(); im.onload = () => res({im,u}); im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('bad image')); }; im.src = u; });
+}
+function buildLut(src){
+  // auto levels per channel (white balance + contrast), gamma lift for dark shots, manual brightness/warmth
+  const luts = [new Uint8ClampedArray(256), new Uint8ClampedArray(256), new Uint8ClampedArray(256)];
+  let lo=[0,0,0], hi=[255,255,255], gamma=1;
+  if (S.auto){
+    const c = canvas(200, 200*src.height/src.width), x = c.getContext('2d',{willReadFrequently:true});
+    x.drawImage(src,0,0,c.width,c.height); const d = x.getImageData(0,0,c.width,c.height).data;
+    const h=[new Uint32Array(256),new Uint32Array(256),new Uint32Array(256)]; let n=0, lum=0;
+    for (let i=0;i<d.length;i+=4){ h[0][d[i]]++; h[1][d[i+1]]++; h[2][d[i+2]]++; n++; lum += .299*d[i]+.587*d[i+1]+.114*d[i+2]; }
+    const pct = (hist,p) => { let acc=0; const t=n*p; for (let v=0;v<256;v++){ acc+=hist[v]; if (acc>=t) return v; } return 255; };
+    for (let ch=0;ch<3;ch++){
+      const l = Math.min(pct(h[ch],0.005), 45), u = Math.max(pct(h[ch],0.995), 190);
+      lo[ch] = l*0.75; hi[ch] = 255 - (255-u)*0.75;  // soften the stretch so colours don't jump
+    }
+    const ml = lum/n; if (ml < 115) gamma = Math.max(0.72, Math.log(0.47)/Math.log(Math.max(ml,20)/255));
+  }
+  const b = S.bright*1.6, w = S.warmth;
+  for (let ch=0;ch<3;ch++){
+    const shift = ch===0 ? w*0.8 : ch===2 ? -w*0.9 : w*0.15;
+    for (let v=0;v<256;v++){
+      let t = (v-lo[ch])/(hi[ch]-lo[ch]); t = Math.max(0,Math.min(1,t));
+      if (gamma!==1) t = Math.pow(t, gamma);
+      luts[ch][v] = t*255 + b + shift;
+    }
+  }
+  return luts;
+}
+function applyColor(ctx, w, h, luts){
+  const id = ctx.getImageData(0,0,w,h), d = id.data, sat = S.auto ? 1.08 : 1;
+  for (let i=0;i<d.length;i+=4){
+    let r=luts[0][d[i]], g=luts[1][d[i+1]], bl=luts[2][d[i+2]];
+    if (sat!==1){ const l=.299*r+.587*g+.114*bl; r=l+(r-l)*sat; g=l+(g-l)*sat; bl=l+(bl-l)*sat; }
+    d[i]=r; d[i+1]=g; d[i+2]=bl;
+  }
+  ctx.putImageData(id,0,0);
+}
+function sharpen(ctx, w, h, a){
+  const id = ctx.getImageData(0,0,w,h), s = id.data, o = new Uint8ClampedArray(s), k = 1+4*a, W = w*4;
+  for (let y=1;y<h-1;y++) for (let x=1;x<w-1;x++){
+    const i = y*W + x*4;
+    for (let c=0;c<3;c++){ const j=i+c; o[j] = k*s[j] - a*(s[j-4]+s[j+4]+s[j-W]+s[j+W]); }
+  }
+  id.data.set(o); ctx.putImageData(id,0,0);
+}
+
+/* ---------- per-photo pipeline ---------- */
+async function addFiles(files){
+  for (const f of files){
+    if (!f.type.startsWith('image/') && !/\.(heic|heif|jpe?g|png|webp)$/i.test(f.name)) continue;
+    const it = { id: ++seq, name: f.name, keepBg:false, ver:0 };
+    items.push(it); renderCard(it); setChip(it,'Загружаю…','busy');
+    try {
+      const { im, u } = await loadImage(f);
+      const sc = Math.min(1, MAXSRC/Math.max(im.naturalWidth, im.naturalHeight));
+      it.w = Math.round(im.naturalWidth*sc); it.h = Math.round(im.naturalHeight*sc);
+      it.src = canvas(it.w,it.h); it.src.getContext('2d').drawImage(im,0,0,it.w,it.h);
+      it.origUrl = u; it.el.querySelector('.orig').src = u;
+      queue(it);
+    } catch(e){
+      setChip(it, f.name.match(/heic|heif/i) ? 'HEIC не открылся: сохрани как JPG' : 'Не удалось открыть файл', 'bad');
+    }
+  }
+  updateBar();
+}
+function queue(it){ if (!it.src) return; it.ver++; process(it, it.ver); }
+async function process(it, ver){
+  const useMask = S.bg !== 'keep' && !it.keepBg;
+  if (useMask && it.mask === undefined){
+    setChip(it, aiState==='ready' ? 'Убираю фон…' : 'Загружаю ИИ…', 'busy');
+    it.mask = await computeMask(it);
+    if (ver !== it.ver) return;
+  }
+  setChip(it,'Обрабатываю…','busy');
+  await new Promise(r => setTimeout(r, 0));
+  if (ver !== it.ver) return;
+  const [W,H] = FMT[S.fmt], out = canvas(W,H), x = out.getContext('2d',{willReadFrequently:true});
+  x.imageSmoothingQuality = 'high';
+  const luts = buildLut(it.src);
+  const m = useMask && it.mask && it.mask.bbox ? it.mask : null;
+  if (m){
+    // background
+    if (S.bg === 'blur'){
+      const t = canvas(W/24, H/24), tx = t.getContext('2d'); coverDraw(tx, it.src, t.width, t.height, null);
+      x.filter = 'none'; x.drawImage(t, 0, 0, W, H);
+      x.fillStyle = 'rgba(255,255,255,.18)'; x.fillRect(0,0,W,H);
+    } else { x.fillStyle = BG[S.bg]; x.fillRect(0,0,W,H); }
+    // subject placement
+    const bb = m.bbox, k = (S.fill/100) * Math.min(W/bb.w, H/bb.h);
+    const dw = it.w*k, dh = it.h*k, dx = W/2 - (bb.x + bb.w/2)*k, dy = H/2 - (bb.y + bb.h/2)*k;
+    if (S.shadow){
+      const cx = W/2, cy = dy + (bb.y+bb.h)*k, rx = bb.w*k*0.48, ry = Math.max(8, bb.h*k*0.045);
+      x.save(); x.translate(cx, cy); x.scale(1, ry/rx);
+      const g = x.createRadialGradient(0,0,0,0,0,rx); g.addColorStop(0,'rgba(0,0,0,.26)'); g.addColorStop(.6,'rgba(0,0,0,.08)'); g.addColorStop(1,'rgba(0,0,0,0)');
+      x.fillStyle = g; x.beginPath(); x.arc(0,0,rx,0,Math.PI*2); x.fill(); x.restore();
+    }
+    const cut = canvas(it.w, it.h), cx2 = cut.getContext('2d',{willReadFrequently:true});
+    cx2.drawImage(it.src,0,0); applyColor(cx2, it.w, it.h, luts);
+    cx2.globalCompositeOperation = 'destination-in'; cx2.imageSmoothingQuality='high'; cx2.drawImage(m.canvas, 0, 0, it.w, it.h);
+    x.drawImage(cut, dx, dy, dw, dh);
+  } else {
+    // keep own background: crop to format, centred on the subject if we know where it is
+    const focus = it.mask && it.mask.bbox ? it.mask.bbox : null;
+    coverDraw(x, it.src, W, H, focus);
+    applyColor(x, W, H, luts);
+  }
+  if (S.sharp) sharpen(x, W, H, 0.18);
+  const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', 0.9));
+  if (ver !== it.ver) return;
+  if (it.url) URL.revokeObjectURL(it.url);
+  it.blob = blob; it.url = URL.createObjectURL(blob);
+  it.el.querySelector('.res').src = it.url;
+  it.el.querySelector('.shot').style.aspectRatio = W + '/' + H;
+  const failed = useMask && !m;
+  setChip(it, failed ? (aiState==='fail' ? 'Готово (фон свой)' : 'Предмет не нашёлся, фон свой') : 'Готово', failed ? 'bad' : '');
+  it.el.querySelector('.save').disabled = false;
+  refreshAiBtn();
+}
+function coverDraw(ctx, src, W, H, focus){
+  const sc = Math.max(W/src.width, H/src.height), sw = W/sc, sh = H/sc;
+  let cx = focus ? focus.x + focus.w/2 : src.width/2, cy = focus ? focus.y + focus.h/2 : src.height/2;
+  const sx = Math.max(0, Math.min(src.width - sw, cx - sw/2)), sy = Math.max(0, Math.min(src.height - sh, cy - sh/2));
+  ctx.drawImage(src, sx, sy, sw, sh, 0, 0, W, H);
+}
+
+/* ---------- cards ---------- */
+function renderCard(it){
+  const el = document.createElement('article'); el.className = 'card';
+  el.innerHTML = `<div class="shot" tabindex="0" aria-label="Зажми, чтобы увидеть оригинал"><img class="res" alt="Обработанное фото"><img class="orig" alt="Оригинал"><span class="chip"></span><span class="peekhint">зажми: оригинал</span></div>
+  <div class="cardfoot"><label class="mini"><input type="checkbox" class="keep"> Свой фон</label><span class="sp"></span><button class="btn rm">Удалить фото</button><button class="btn primary save" disabled>Сохранить</button></div>`;
+  const shot = el.querySelector('.shot');
+  const on = e => { e.preventDefault(); shot.classList.add('peek'); }, off = () => shot.classList.remove('peek');
+  shot.addEventListener('pointerdown', on); ['pointerup','pointerleave','pointercancel'].forEach(t => shot.addEventListener(t, off));
+  shot.addEventListener('contextmenu', e => e.preventDefault());
+  shot.addEventListener('keydown', e => { if (e.key===' ') { e.preventDefault(); shot.classList.add('peek'); } });
+  shot.addEventListener('keyup', off);
+  el.querySelector('.keep').addEventListener('change', e => { it.keepBg = e.target.checked; queue(it); });
+  el.querySelector('.rm').addEventListener('click', () => {
+    it.ver++; items = items.filter(x => x !== it); el.remove();
+    if (it.url) URL.revokeObjectURL(it.url); if (it.origUrl) URL.revokeObjectURL(it.origUrl); updateBar(); refreshAiBtn();
+  });
+  el.querySelector('.save').addEventListener('click', () => saveOne(it));
+  it.el = el; $('grid').appendChild(el);
+}
+function setChip(it, text, cls){ const c = it.el.querySelector('.chip'); c.textContent = text; c.className = 'chip ' + (cls||''); }
+function updateBar(){
+  const n = items.length; $('empty').hidden = n>0; $('saveAll').hidden = n<2; $('clearAll').hidden = n<1;
+  $('countH').textContent = n ? `Фото: ${n}` : 'Фото';
+}
+function fname(it, i){ return `avito_${String(i+1).padStart(2,'0')}.jpg`; }
+function toFile(it,i){ return new File([it.blob], fname(it,i), { type:'image/jpeg' }); }
+function dl(blob, name){ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+async function shareFiles(files){
+  if (!(navigator.canShare && navigator.canShare({ files }))) return false;
+  try { await navigator.share({ files }); } catch(e){ if (e && e.name !== 'AbortError') return false; }
+  return true;
+}
+async function saveOne(it){
+  if (!it.blob) return;
+  const i = items.indexOf(it);
+  if (await shareFiles([toFile(it,i)])) return;
+  dl(it.blob, fname(it,i));
+}
+$('modalClose').onclick = () => { $('modal').hidden = true; };
+$('saveAll').onclick = async () => {
+  const ready = items.filter(it => it.blob); if (!ready.length) return;
+  if (await shareFiles(ready.map((it,i) => toFile(it,i)))) return;
+  const btn = $('saveAll'); btn.disabled = true; btn.textContent = 'Собираю архив…';
+  try { const z = new JSZip(); ready.forEach((it,i) => z.file(fname(it,i), it.blob)); dl(await z.generateAsync({ type:'blob' }), 'avito_foto.zip'); }
+  finally { btn.disabled = false; btn.textContent = 'Сохранить все'; }
+};
+$('clearAll').onclick = () => { items.forEach(it => { it.ver++; it.el.remove(); }); items = []; updateBar(); refreshAiBtn(); $('aiOut').innerHTML=''; };
+
+/* ---------- upload ---------- */
+$('file').addEventListener('change', e => { addFiles([...e.target.files]); e.target.value = ''; });
+const drop = $('drop');
+['dragenter','dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(t => drop.addEventListener(t, () => drop.classList.remove('over')));
+drop.addEventListener('drop', e => { e.preventDefault(); addFiles([...e.dataTransfer.files]); });
+document.addEventListener('paste', e => { const f = [...(e.clipboardData?.files||[])]; if (f.length) addFiles(f); });
+
+/* ---------- AI tips (Claude, on request) ---------- */
+let aiCtl = null;
+function refreshAiBtn(){ $('askAi').disabled = !sample || !items.some(it => it.blob); }
+async function smallJpeg(blob){
+  const { im, u } = await loadImage(blob); const sc = Math.min(1, 1024/Math.max(im.naturalWidth, im.naturalHeight));
+  const c = canvas(im.naturalWidth*sc, im.naturalHeight*sc); c.getContext('2d').drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(u);
+  return new Promise(r => c.toBlob(r,'image/jpeg',0.85));
+}
+function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+$('askAi').onclick = async () => {
+  if (!sample) return;
+  const out = $('aiOut'); out.innerHTML = '<p class="note">Claude смотрит фото… обычно 20–60 секунд.</p>';
+  $('askAi').disabled = true; $('stopAi').hidden = false; aiCtl = new AbortController();
+  try {
+    let max = 4; try { const lim = await sample.limits(); if (lim.images) max = Math.min(4, lim.images.maxCount); } catch(e){}
+    const imgs = await Promise.all(items.filter(it => it.blob).slice(0, max).map(it => smallJpeg(it.blob)));
+    const hint = $('hint').value.trim();
+    const prompt = `Ты помогаешь частному продавцу на Авито. Посмотри на приложенные фото товара (их ${imgs.length}, первое будет главным в объявлении).${hint ? ' Продавец пишет о товаре: «' + hint + '».' : ''}
+Ответь строго JSON без пояснений вокруг, на русском, по схеме:
+{"item":"что это за товар, коротко","score":число 1-5 (насколько фото готовы к продаже),"good":["что уже хорошо", ...до 3],"fix":["конкретно что переснять или поправить на этих фото: ракурс, свет, кадр, фон", ...до 4],"missing":["каких кадров не хватает для этого типа товара", ...до 4],"title":"заголовок объявления до 50 знаков: что это, бренд/модель если видно, ключевой параметр","description":"описание 4-7 предложений: состояние, размер/параметры если видны или указаны, комплект, причина продажи не выдумывать; честно упомянуть видимые дефекты; не выдумывать факты, которых нет на фото или в словах продавца, вместо них ставить [уточнить]"}`;
+    const r = await sample.json(prompt, { images: imgs, signal: aiCtl.signal });
+    const li = a => (Array.isArray(a) ? a : []).map(x => `<li>${esc(x)}</li>`).join('');
+    out.innerHTML = `
+      <div class="copyrow"><h3>${esc(r.item)}</h3><span class="score" title="Готовность фото">${esc(r.score)}/5</span></div>
+      ${r.good?.length ? `<div><h3>Уже хорошо</h3><ul>${li(r.good)}</ul></div>` : ''}
+      ${r.fix?.length ? `<div><h3>Что поправить</h3><ul>${li(r.fix)}</ul></div>` : ''}
+      ${r.missing?.length ? `<div><h3>Каких кадров не хватает</h3><ul>${li(r.missing)}</ul></div>` : ''}
+      <div><div class="copyrow"><h3>Заголовок</h3><button class="btn cp" data-k="title">Копировать</button></div><div class="copybox" id="t_title">${esc(r.title)}</div></div>
+      <div><div class="copyrow"><h3>Описание</h3><button class="btn cp" data-k="description">Копировать</button></div><div class="copybox" id="t_description">${esc(r.description)}</div></div>
+      <p class="note">Проверь текст перед публикацией: ИИ видит только фото, поля [уточнить] заполни сама.</p>`;
+    out.querySelectorAll('.cp').forEach(b => b.onclick = () => {
+      const el = $('t_' + b.dataset.k), t = el.textContent;
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { b.textContent = 'Скопировано'; setTimeout(()=>b.textContent='Копировать',1500); })
+        .catch(() => { const rg = document.createRange(); rg.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(rg); b.textContent = 'Выделено, скопируй'; });
+    });
+  } catch(e){
+    const code = e && e.code;
+    const msg = { cancelled:'Остановлено.', not_granted:'Доступ к Claude не разрешён, подсказки недоступны.', rate_limited:'Слишком много запросов подряд. Подожди минуту и попробуй снова.', invalid_json:'Ответ пришёл в неожиданном виде. Нажми ещё раз.', images_unavailable:'В этом окне нельзя отправить фото в Claude.' }[code] || 'Не получилось получить подсказки. Попробуй ещё раз позже.';
+    out.innerHTML = `<p class="note">${esc(msg)}</p>`;
+    if (code === 'not_granted') $('aiPanel').hidden = true;
+  } finally { $('stopAi').hidden = true; refreshAiBtn(); }
+};
+$('stopAi').onclick = () => aiCtl && aiCtl.abort();
+
+updateBar();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body></html>
